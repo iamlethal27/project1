@@ -1,0 +1,28 @@
+name: Deploy project1 to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Add SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.PROJECT1_SSH_KEY }}
+
+    - name: Deploy files to EC2
+      env:
+        HOST: ${{ secrets.PROJECT1_HOST }}
+        USER: ${{ secrets.PROJECT1_USER }}
+      run: |
+        set -e
+        ssh -o StrictHostKeyChecking=no "$USER@$HOST" "sudo mkdir -p /var/www/project1"
+        rsync -az --delete ./ "$USER@$HOST:/var/www/project1/"
+        ssh -o StrictHostKeyChecking=no "$USER@$HOST" "sudo chown -R ubuntu:www-data /var/www/project1 && sudo chmod -R 775 /var/www/project1 && sudo systemctl reload apache2"
